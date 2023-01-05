@@ -114,6 +114,105 @@ struct Tamagochi: View {
     
     ![스크린샷 2023-01-04 오전 11 55 28](https://user-images.githubusercontent.com/70970222/210508906-ec6419f0-0115-436e-90fe-9d37252c67f6.png)
     
-    - 구조체에 바꾸고 싶은 프로퍼티 앞에 **@State(propertyWrapper)** 추가
-    - View가 바뀔 때 마다 화면을 계속 새로 그려줌
-        - property가 바뀔 때 마다 계속 그리는 로직
+- 구조체에 바꾸고 싶은 프로퍼티 앞에 **@State(propertyWrapper)** 추가
+    - 구조체는 내부 프로퍼티 수정이 안 되기 때문
+    - @state: **다른 뷰와는 공유가 불가능함, 그래서 일반적으로 private 키워드 추가**
+- **View가 바뀔 때 마다 화면을 계속 새로 그려줌(랜더링)**
+    - **@state property가 바뀔 때 마다 계속 그리는 로직**
+        - 다른 property들도 같이 바뀌게 됨 - 뷰 그리는 로직 자체가 가볍고 구조체로 이뤄져 있어서 비효율성 걱정 안 해도 됨
+            - 애플에서 재차 문제 없다고 언급함
+- View안에 다른 view를 넣으면 해당 view는 새로 랜더링되지 않음
+
+1. 구조체
+2. 연산 프로퍼티
+- 재사용을 다른 뷰에서 하지 않으면 그냥 뷰 구조체 안에서 연산 프로퍼티로 선언해도 됨
+
+```swift
+struct Tamagochi: View {
+    
+    // @state: 다른 뷰와 공유 불가능, 그래서 일반적으로 private 키워드 추가
+    @State private var riceCount: Int = 0
+    @State private var waterCount: Int = 0
+    
+    // 연산 프로퍼티로 뷰의 컴포넌트를 나누는 방법
+    var characterName: some View {
+        Text("방실방실 다마고치 \(Int.random(in: 1...100))")
+    }
+    
+    var body: some View { // 뷰 렌더링
+        VStack(spacing: 10) {
+            characterName
+            Text("Lv 1. 밥알 \(riceCount)개 물방울 \(waterCount)개")
+            GrowButton(text: "밥 먹기", icon: Image(systemName: "star")) {
+                riceCount += 1
+            }
+            GrowButton(text: "물 먹기", icon: Image(systemName: "pencil")) {
+                waterCount += 1
+            }
+        }
+    }
+}
+```
+
+- 라이프 사이클
+    - viewDidLoad가 사라짐
+    - onAppear에 viewDidLoad에서 하고 싶은 일을 쓰면 이상해짐..
+
+```swift
+// viewDidLoad가 사라짐
+.onAppear(perform: {
+   print("viewDidAppear")
+   print("viewDidLoad에서 하고 싶은 일을 여기 쓰면 이상해짐..")
+})
+.onDisappear {
+   print("viewDidDisppear")
+}
+```
+
+- 화면 전환
+    
+    ```swift
+    GrowButton(text: "통계 보기", icon: Image(systemName: "pencil")) {
+        showModal = true
+    }
+    .sheet(isPresented: $showModal) {
+            ExampleView()
+    }
+    ```
+    
+    - Bool타입 앞에 $ 추가하면 Binding Bool 타입으로 바뀜
+        - Binding이 되어 있기 때문에 화면 전환이 종료되면 자동으로 감지해서 해당 값을 다시 알아서 false로 바꿔줌(?)
+    - binding 객체를 이용해서 didSet 구현한 MVVM기능을 @state가 다 가지고 있음
+
+- SwiftUI에서는 다국어가 자동으로 바뀜 - LocalizedStringKey로 string을 받기 위해
+    - 자동으로 다국어 대응이 되어 있음 - 다국어 대응 되지 않기 위해서 막을 수 있는 키워드도 있음
+        - 같은 단어도 다른 곳에서는 번역이 안 되게 하고 싶을 때
+
+- **@Binding → @State로 선언된 프로퍼티를 뷰 외부에서 사용하고 싶을 때**
+    - UserTextView에서도 변경된 프로퍼티 값을 적용하고 싶을 때 binding 프로퍼티 선언해서 바뀐 값을 전달 받음
+
+```swift
+struct UserTextView: View {
+    
+    @Binding var text: String
+    
+    var body: some View {
+        Text("안녕하세요")
+    }
+}
+
+struct InputView: View {
+    
+    @State private var nickname = ""
+    
+    var body: some View {
+        // $로 값 변경 감지
+        VStack {
+            TextField("닉네임을 입력해주세요", text: $nickname)
+                .padding()
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            UserTextView(text: $nickname)
+        }
+    }
+}
+```
