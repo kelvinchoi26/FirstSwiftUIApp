@@ -63,12 +63,14 @@ struct ExampleText: View {
         Text("방실방실 다마고치 \(Int.random(in: 1...100))")
     }
 }
+
 struct Tamagochi: View {
     
     // @state: 다른 뷰와 공유 불가능, 그래서 일반적으로 private 키워드 추가
     @State private var riceCount: Int = 0
     @State private var waterCount: Int = 0
     @State private var showModal = false
+    @State private var isAnimating = false
     
     // 연산 프로퍼티로 뷰의 컴포넌트를 나누는 방법
     var characterName: some View {
@@ -77,9 +79,22 @@ struct Tamagochi: View {
     
     var body: some View { // 뷰 렌더링
         VStack(spacing: 10) {
+            Image(systemName: "star")
+                .resizable()
+                .frame(width: 200, height: 200)
+                .background(.gray)
+                .offset(x: isAnimating ? -100 : 100, y: isAnimating ? 0 : 100)
+                .animation(.easeOut.speed(0.2).repeatCount(4).delay(2), value: isAnimating)
+            ZStack {
+                characterName
+                    .padding(20)
+                    .background(.red)
+                characterName
+                    .padding(50)
+                    .background(.yellow)
+            }
             // characterName과 다르게 ExampleText()는 새로 랜더링 되지 않음
             // 연산 프로퍼티만 다시 그림
-            characterName
             ExampleText()
             Text("Lv 1. 밥알 \(riceCount)개 물방울 \(waterCount)개")
             GrowButton(text: "밥 먹기", icon: Image(systemName: "star")) {
@@ -99,6 +114,7 @@ struct Tamagochi: View {
         .onAppear(perform: {
             print("viewDidAppear")
             print("viewDidLoad에서 하고 싶은 일을 여기 쓰면 이상해짐..")
+            isAnimating = true
         })
         .onDisappear {
             print("viewDidDisppear")

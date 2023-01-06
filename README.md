@@ -216,3 +216,158 @@ struct InputView: View {
     }
 }
 ```
+
+- textField → lineLimit 기능 → 최소 iOS16 이상
+    - 채팅 구현에 활용
+    
+    ![스크린샷 2023-01-06 오전 10 15 42](https://user-images.githubusercontent.com/70970222/211004270-59be1ca1-89fd-47ce-9849-234a435d1dbb.png)
+    
+- 그래서 아직은 단독으로 SwiftUI 활용하기 무리가 있음
+    - UIKit 프로젝트에 SwiftUI 추가는 어떨까?
+- Storyboard에서 SwiftUI View 추가 → Hosting View Controller
+    - layout 안 잡아도 됨
+- **Storyboard(UIKit) + SwiftUI > UIHostingController**
+
+```swift
+import UIKit
+import SwiftUI
+
+class ViewController: UIViewController {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Do any additional setup after loading the view.
+    }
+    
+    
+    @IBAction func buttonClicked(_ sender: UIButton) {
+        
+        let vc = UIHostingController(rootView: SwiftUIView())
+        
+        present(vc, animated: true)
+    }
+    
+
+}
+```
+
+- **SwiftUI + Storyboard(UIKit) > UIViewRepresentable / UIViewControllerRepresentable**
+    - UIViewControllerRepresentable - 프로토콜 채택해서 make,update 함수 정의해서 뷰컨 호출
+
+```swift
+import SwiftUI
+
+struct SampleViewControllerRepresentable: UIViewControllerRepresentable {
+    
+    func makeUIViewController(context: Context) -> some UIViewController {
+        return SampleViewController()
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
+        
+    }
+    
+}
+
+struct RepresentableView: View {
+    var body: some View {
+        SampleViewControllerRepresentable()
+            .ignoresSafeArea()
+    }
+}
+
+struct RepresentableView_Previews: PreviewProvider {
+    static var previews: some View {
+        RepresentableView()
+    }
+}
+```
+
+- UIViewRepresentable - UIView 객체를 SwiftUI View에 포함
+    - make, update 함수 정의 후 사용
+
+```swift
+struct ChatTextView: UIViewRepresentable {
+    
+    @Binding var text: String
+    
+        // 리턴 값을 원하는 컴포넌트로 변경
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.backgroundColor = .lightGray
+        return textView
+    }
+    
+    func updateUIView(_ uiView: UIViewType, context: Context) {
+        uiView.text = text
+    }
+}
+```
+
+- Animation 구현
+    - animation 구현 패턴 참고:
+    
+    [Easing Functions Cheat Sheet](https://easings.net/#)
+    
+
+```swift
+struct Tamagochi: View {
+    
+    // @state: 다른 뷰와 공유 불가능, 그래서 일반적으로 private 키워드 추가
+    @State private var riceCount: Int = 0
+    @State private var waterCount: Int = 0
+    @State private var showModal = false
+    @State private var isAnimating = false
+    
+    // 연산 프로퍼티로 뷰의 컴포넌트를 나누는 방법
+    var characterName: some View {
+        Text("방실방실 다마고치 \(Int.random(in: 1...100))")
+    }
+    
+    var body: some View { // 뷰 렌더링
+        VStack(spacing: 10) {
+            Image(systemName: "star")
+                .resizable()
+                .frame(width: 200, height: 200)
+                .background(.gray)
+                .offset(x: isAnimating ? -100 : 100, y: isAnimating ? 0 : 100)
+                .animation(.easeOut.speed(0.2).repeatCount(4).delay(2), value: isAnimating)
+            ZStack {
+                characterName
+                    .padding(20)
+                    .background(.red)
+                characterName
+                    .padding(50)
+                    .background(.yellow)
+            }
+            // characterName과 다르게 ExampleText()는 새로 랜더링 되지 않음
+            // 연산 프로퍼티만 다시 그림
+            ExampleText()
+            Text("Lv 1. 밥알 \(riceCount)개 물방울 \(waterCount)개")
+            GrowButton(text: "밥 먹기", icon: Image(systemName: "star")) {
+                riceCount += 1
+            }
+            GrowButton(text: "물 먹기", icon: Image(systemName: "pencil")) {
+                waterCount += 1
+            }
+            GrowButton(text: "통계 보기", icon: Image(systemName: "pencil")) {
+                showModal = true
+            }
+            .sheet(isPresented: $showModal) {
+                ExampleView()
+            }
+        }
+        // viewDidLoad가 사라짐
+        .onAppear(perform: {
+            print("viewDidAppear")
+            print("viewDidLoad에서 하고 싶은 일을 여기 쓰면 이상해짐..")
+            isAnimating = true
+        })
+        .onDisappear {
+            print("viewDidDisppear")
+        }
+    }
+}
+```
+
+- 추가적인 키워드: **KeyPath, KVO/KVC, Identifiable**
