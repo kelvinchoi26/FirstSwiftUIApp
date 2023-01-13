@@ -252,7 +252,7 @@ class ViewController: UIViewController {
 ```
 
 - **SwiftUI + Storyboard(UIKit) > UIViewRepresentable / UIViewControllerRepresentable**
-    - UIViewControllerRepresentable - 프로토콜 채택해서 make,update 함수 정의해서 뷰컨 호출
+    - UIViewControllerRepresentable - 프로토콜 채택해서 make,update 함수 정의해서 뷰컨트롤러 호출
 
 ```swift
 import SwiftUI
